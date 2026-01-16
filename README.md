@@ -4,7 +4,7 @@ A premium, high-performance travel discovery tool built with modern web technolo
 
 🚀 Live Preview
 
-You can view the live app here: https://[YOUR-GITHUB-USERNAME].github.io/[REPO-NAME]/
+You can view the live app here: [https://[YOUR-GITHUB-USERNAME].github.io/[REPO-NAME]/](https://fred-systems.github.io/Vagabond.ai/)
 
 ✨ Key Features
 
@@ -35,19 +35,6 @@ Overpass API (Real-time POI and Hotel Data)
 Photon (Search Autocomplete & Geocoding)
 
 Wikimedia API (Dynamic Summaries & Imagery)
-
-📦 Quick Start
-
-Clone the Repo:
-
-git clone [https://github.com/](https://github.com/)[YOUR-USERNAME]/[REPO-NAME].git
-
-
-Open the App:
-Simply open index.html in any modern web browser. No installation or build steps required!
-
-Deploy to GitHub Pages:
-Push your code to the main branch and enable GitHub Pages in your repository settings to share your live travel tool.
 
 📜 License
 
