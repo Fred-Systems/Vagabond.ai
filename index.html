@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vagabond.ai | Live AI Travel Concierge</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        :root {
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-teal: #2dd4bf;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow-x: hidden; scroll-behavior: smooth; }
+        .bg-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(45, 212, 191, 0.08) 0%, transparent 70%); filter: blur(60px); z-index: -1; pointer-events: none; }
+        .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 24px; }
+        .vibe-chip { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
+        .vibe-chip.active { background: var(--accent-teal); color: #020617; transform: translateY(-2px); box-shadow: 0 10px 20px -10px #2dd4bf; }
+        #map { height: 100% !important; min-height: 400px; width: 100%; border-radius: 24px; z-index: 10; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .settings-panel { position: fixed; top: 0; right: 0; height: 100%; width: 320px; z-index: 2000; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .settings-panel.open { transform: translateX(0); }
+        .animate-fade { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .photo-card { aspect-ratio: 16/9; width: 100%; object-fit: cover; border-radius: 16px; transition: all 0.3s ease; cursor: pointer; background: #1e293b; }
+        .photo-card:hover { transform: scale(1.03); border: 2px solid var(--accent-teal); }
+        .btn-tool { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; transition: all 0.2s; color: #94a3b8; text-decoration: none; }
+        .btn-tool:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+        
+        /* Fixed UI classes for toggles */
+        .setting-btn { flex: 1; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 0.75rem; font-weight: 700; transition: all 0.2s; }
+        .setting-btn.active { border-color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); color: var(--accent-teal); }
+        
+        .map-focus-btn { position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: var(--accent-teal); color: #020617; padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; box-shadow: 0 10px 20px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; transition: transform 0.2s; }
+        .map-focus-btn:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="bg-glow top-[-10%] left-[-10%]"></div>
+    <div class="bg-glow bottom-[-10%] right-[-10%]"></div>
+
+    <nav class="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center relative z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-teal-400 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                <i data-lucide="compass" class="text-slate-900 w-6 h-6"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold tracking-tight">Vagabond<span class="text-teal-400">.ai</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSettings()" class="bg-white/5 hover:bg-white/10 p-2.5 rounded-full border border-white/10 text-slate-400 transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Settings Sidebar -->
+    <div id="settingsPanel" class="glass border-l border-white/10 settings-panel p-8">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-xl font-bold">Preferences</h2>
+            <button onclick="toggleSettings()" class="p-2 hover:bg-white/5 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="space-y-8">
+            <div>
+                <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Map Theme</label>
+                <div class="flex gap-2">
+                    <button id="themeLight" onclick="setMapTheme('light')" class="setting-btn active">Light</button>
+                    <button id="themeDark" onclick="setMapTheme('dark')" class="setting-btn">Dark</button>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Unit System</label>
+                <div class="flex gap-2">
+                    <button id="unitF" onclick="setUnit('F')" class="setting-btn active">°F (US)</button>
+                    <button id="unitC" onclick="setUnit('C')" class="setting-btn">°C (Metric)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12">
+        <!-- Sidebar -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="glass p-8 space-y-8 animate-fade">
+                <div>
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="map-pin" class="text-teal-400 w-5 h-5"></i> Destination</h2>
+                    <div class="relative">
+                        <input type="text" id="destInput" placeholder="Search Orlando, Tokyo..." class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 transition-all text-lg placeholder:text-slate-500">
+                        <div id="autocomplete" class="absolute w-full mt-2 bg-slate-900 border border-white/15 rounded-2xl overflow-hidden z-[100] hidden max-h-80 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="sparkles" class="text-indigo-400 w-5 h-5"></i> Trip Vibe</h2>
+                    <div class="grid grid-cols-2 gap-2" id="vibe-container">
+                        <div onclick="setVibe('culture', event)" class="vibe-chip active glass p-3 rounded-xl text-center text-xs font-bold uppercase">🏛️ Culture</div>
+                        <div onclick="setVibe('nature', event)" class="vibe-chip glass p-3 rounded-xl text-center text-xs font-bold uppercase">🌲 Nature</div>
+                        <div onclick="setVibe('food', event)" class="vibe-chip glass p-3 rounded-xl text-center text-xs font-bold uppercase">🍜 Foodie</div>
+                        <div onclick="setVibe('nightlife', event)" class="vibe-chip glass p-3 rounded-xl text-center text-xs font-bold uppercase">💃 Party</div>
+                        <div onclick="setVibe('family', event)" class="vibe-chip glass p-3 rounded-xl text-center text-xs font-bold uppercase">👨‍👩‍👧‍👦 Family</div>
+                        <div onclick="setVibe('amusement', event)" class="vibe-chip glass p-3 rounded-xl text-center text-xs font-bold uppercase">🎢 Amusement</div>
+                    </div>
+                </div>
+
+                <div id="brief-card" class="hidden glass p-6 space-y-3 bg-white/[0.02]">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-teal-400">AI Context Brief</h3>
+                    <p id="brief-text" class="text-sm leading-relaxed text-slate-300">Fetching trivia...</p>
+                </div>
+
+                <div id="packing-card" class="glass p-6 space-y-4">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Packing Checklist</h3>
+                    <div id="packing-list" class="text-xs space-y-2 text-slate-400">Select a vibe above.</div>
+                </div>
+
+                <div id="currency-card" class="hidden glass bg-teal-400/5 border-teal-400/20 p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-teal-400">Live Exchange</h3>
+                        <span id="local-curr-code" class="text-[10px] bg-teal-400/20 text-teal-400 px-2 py-1 rounded">USD</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="text-center">
+                            <p class="text-[10px] text-slate-500 mb-1">Base (USD)</p>
+                            <p id="user-curr-val" class="text-lg font-black">1.00</p>
+                        </div>
+                        <i data-lucide="arrow-right-left" class="text-slate-600"></i>
+                        <div class="text-center">
+                            <p class="text-[10px] text-slate-500 mb-1">Local Value</p>
+                            <p id="local-curr-val" class="text-lg font-black">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-8 space-y-8">
+            <!-- Map & Weather Header -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-3 glass relative overflow-hidden h-[400px]">
+                    <div id="map"></div>
+                    <button onclick="focusAllMarkers()" class="map-focus-btn">
+                        <i data-lucide="maximize" class="w-4 h-4"></i>
+                        Focus Trip
+                    </button>
+                </div>
+                <div class="glass p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">5-Day Forecast</h3>
+                        <div id="forecast-list" class="space-y-4">
+                            <div class="flex justify-between items-center text-xs text-slate-400 italic">Enter location...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photos -->
+            <div id="gallery-section" class="hidden space-y-4">
+                <h2 class="text-xl font-bold px-2 flex items-center gap-2"><i data-lucide="image" class="w-5 h-5 text-indigo-400"></i> Visual Inspiration (Wikimedia)</h2>
+                <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- Hotels Section -->
+            <div id="hotel-section" class="hidden space-y-6">
+                <h2 class="text-2xl font-extrabold px-2 flex items-center gap-3"><i data-lucide="bed" class="w-6 h-6 text-teal-400"></i> Stays & Accommodations</h2>
+                <div id="hotel-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+
+            <!-- Itinerary Section -->
+            <div id="itinerary-section" class="space-y-6">
+                <h2 class="text-2xl font-extrabold px-2 flex items-center gap-3"><i data-lucide="map" class="w-6 h-6 text-indigo-400"></i> Destination Discovery</h2>
+                <div id="itinerary" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let map, markers = [], hotelMarkers = [];
+        let tileLayer;
+        const appState = {
+            dest: '', lat: null, lon: null, country: '',
+            vibe: 'culture', mapTheme: 'light', unit: 'F'
+        };
+
+        const themes = {
+            light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+            dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        };
+
+        window.onload = function() {
+            lucide.createIcons();
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
+            tileLayer = L.tileLayer(themes[appState.mapTheme]).addTo(map);
+            updatePackingList();
+        };
+
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
+        
+        function setMapTheme(t) { 
+            appState.mapTheme = t; 
+            tileLayer.setUrl(themes[t]);
+            // Update UI Highlighting
+            document.getElementById('themeLight').classList.toggle('active', t === 'light');
+            document.getElementById('themeDark').classList.toggle('active', t === 'dark');
+        }
+        
+        function setUnit(u) { 
+            appState.unit = u; 
+            if(appState.lat) fetchWeather(appState.lat, appState.lon);
+            // Update UI Highlighting
+            document.getElementById('unitF').classList.toggle('active', u === 'F');
+            document.getElementById('unitC').classList.toggle('active', u === 'C');
+        }
+
+        function focusAllMarkers() {
+            const all = markers.concat(hotelMarkers);
+            if(all.length > 0) {
+                map.fitBounds(new L.featureGroup(all).getBounds().pad(0.2));
+            } else if(appState.lat) {
+                map.flyTo([appState.lat, appState.lon], 12);
+            }
+        }
+
+        const destInput = document.getElementById('destInput');
+        const autocomplete = document.getElementById('autocomplete');
+
+        destInput.addEventListener('input', async (e) => {
+            const val = e.target.value;
+            if (val.length < 2) { autocomplete.classList.add('hidden'); return; }
+            try {
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`);
+                const data = await res.json();
+                autocomplete.innerHTML = data.features.map(f => {
+                    const name = f.properties.name || '';
+                    const country = f.properties.country || '';
+                    return `<div class="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5" 
+                             onclick="selectLocation(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}', '${country.replace(/'/g, "\\'")}', '${f.properties.countrycode}')">
+                            <p class="font-bold text-sm text-white">${name}</p>
+                            <p class="text-xs text-slate-500 mt-1">${f.properties.state || ''}, ${country}</p>
+                        </div>`;
+                }).join('');
+                autocomplete.classList.remove('hidden');
+            } catch (err) {}
+        });
+
+        async function selectLocation(lat, lon, name, country, code) {
+            appState.lat = lat; appState.lon = lon; appState.dest = name; appState.country = country;
+            destInput.value = `${name}, ${country}`;
+            autocomplete.classList.add('hidden');
+            map.flyTo([lat, lon], 12);
+            
+            fetchPhotos(name);
+            fetchBrief(name);
+            fetchWeather(lat, lon);
+            fetchCurrency(code);
+            fetchHotels(lat, lon);
+            generateItinerary();
+        }
+
+        async function fetchPhotos(name) {
+            const grid = document.getElementById('gallery-grid');
+            grid.innerHTML = Array(4).fill(0).map(() => `<div class="photo-card animate-pulse bg-slate-800"></div>`).join('');
+            document.getElementById('gallery-section').classList.remove('hidden');
+
+            try {
+                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages|images&titles=${encodeURIComponent(name)}&pithumbsize=800`);
+                const data = await res.json();
+                const pages = data.query.pages;
+                const pageId = Object.keys(pages)[0];
+                let imageUrls = [];
+                if (pages[pageId].thumbnail) imageUrls.push(pages[pageId].thumbnail.source);
+
+                const randomRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(name)}&gsrnamespace=6&prop=imageinfo&iiprop=url&gsrlimit=10`);
+                const randomData = await randomRes.json();
+                if (randomData.query && randomData.query.pages) {
+                    Object.values(randomData.query.pages).forEach(p => {
+                        if (p.imageinfo && p.imageinfo[0].url) imageUrls.push(p.imageinfo[0].url);
+                    });
+                }
+                if (imageUrls.length === 0) {
+                    grid.innerHTML = `<p class="col-span-full text-slate-500 italic text-sm p-4">No Commons images found.</p>`;
+                    return;
+                }
+                grid.innerHTML = imageUrls.slice(0, 4).map(url => `<img src="${url}" class="photo-card" onclick="window.open('${url}', '_blank')">`).join('');
+            } catch (e) {}
+        }
+
+        async function fetchBrief(name) {
+            try {
+                const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+                const data = await res.json();
+                document.getElementById('brief-text').innerText = data.extract || `Explore the unique atmosphere and landmarks of ${name}.`;
+                document.getElementById('brief-card').classList.remove('hidden');
+            } catch (e) {}
+        }
+
+        async function fetchWeather(lat, lon) {
+            try {
+                const unit = appState.unit === 'F' ? 'fahrenheit' : 'celsius';
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&temperature_unit=${unit}&timezone=auto`);
+                const data = await res.json();
+                const forecastDiv = document.getElementById('forecast-list');
+                forecastDiv.innerHTML = data.daily.time.slice(0, 5).map((t, i) => `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">${new Date(t).toLocaleDateString([], {weekday: 'short'})}</span>
+                        <span class="text-xs font-black text-white">${Math.round(data.daily.temperature_2m_max[i])}°${appState.unit}</span>
+                    </div>
+                `).join('');
+            } catch (err) {}
+        }
+
+        function fetchCurrency(countryCode) {
+            const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD' };
+            const local = mapping[countryCode] || 'USD';
+            document.getElementById('local-curr-code').innerText = local;
+            const rates = { 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'USD': 1.0, 'CAD': 1.35 };
+            const rate = rates[local] || 1.15;
+            document.getElementById('local-curr-val').innerText = `${rate.toFixed(2)} ${local}`;
+            document.getElementById('currency-card').classList.remove('hidden');
+        }
+
+        async function fetchHotels(lat, lon) {
+            const list = document.getElementById('hotel-list');
+            list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding best stays...</div>`;
+            document.getElementById('hotel-section').classList.remove('hidden');
+
+            const query = `[out:json];node(around:8000,${lat},${lon})["tourism"="hotel"];out 6;`;
+            try {
+                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                hotelMarkers.forEach(m => map.removeLayer(m));
+                hotelMarkers = [];
+
+                if (!data.elements || data.elements.length === 0) {
+                    list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found.</div>`;
+                    return;
+                }
+
+                list.innerHTML = data.elements.map(h => {
+                    const name = h.tags.name || 'Boutique Stay';
+                    const marker = L.circleMarker([h.lat, h.lon], { radius: 7, fillColor: "#fbbf24", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(`🏨 ${name}`);
+                    hotelMarkers.push(marker);
+                    const searchQ = encodeURIComponent(`${name} hotel ${appState.dest}`);
+                    return `
+                        <div class="glass p-5 flex flex-col justify-between animate-fade">
+                            <div>
+                                <h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3>
+                                <p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 border-amber-400/20 text-amber-400">Book Now</a>
+                                <button onclick="map.flyTo([${h.lat}, ${h.lon}], 17)" class="btn-tool">Map Fly-To</button>
+                            </div>
+                        </div>`;
+                }).join('');
+                lucide.createIcons();
+            } catch (e) { list.innerHTML = ""; }
+        }
+
+        async function generateItinerary() {
+            const itDiv = document.getElementById('itinerary');
+            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">Scanning local area...</div>`;
+            const queries = { culture: '["tourism"="museum"]', nature: '["leisure"="park"]', food: '["amenity"="restaurant"]', nightlife: '["amenity"="pub"]', family: '["leisure"="playground"]', amusement: '["tourism"~"theme_park|attraction"]' };
+            const query = `[out:json];node(around:15000,${appState.lat},${appState.lon})${queries[appState.vibe] || queries.culture};out 12;`;
+            try {
+                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                renderPOI(data.elements);
+            } catch (err) {}
+        }
+
+        function renderPOI(points) {
+            const itDiv = document.getElementById('itinerary');
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found.</div>`; return; }
+
+            itDiv.innerHTML = points.map((p, i) => {
+                const name = p.tags.name || 'Point of Interest';
+                const searchQ = encodeURIComponent(`${name} ${appState.dest}`);
+                const marker = L.circleMarker([p.lat, p.lon], { radius: 6, fillColor: "#2dd4bf", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(name);
+                markers.push(marker);
+                return `
+                    <div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s">
+                        <div>
+                            <h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3>
+                            <p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.amenity || 'Local Spot'}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
+                            <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
+                            <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Coupons</a>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
+                            <button onclick="map.flyTo([${p.lat}, ${p.lon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2">
+                                <i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+            lucide.createIcons();
+            focusAllMarkers();
+        }
+
+        function setVibe(v, e) {
+            appState.vibe = v;
+            document.querySelectorAll('.vibe-chip').forEach(c => c.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            updatePackingList();
+            if (appState.dest) generateItinerary();
+        }
+
+        function updatePackingList() {
+  const lists = {
+    culture: [
+      'Walking shoes: High-comfort for long museum days',
+      'Camera: With extra memory cards for cityscapes',
+      'External battery: To keep your maps and audio guides running',
+      'Scarf/Shawl: For entry into religious or conservative sites',
+      'Notebook & Pen: To jot down historical facts or sketches',
+      'Local currency: Small bills for museum tips or street performers',
+      'Museum pass: Pre-booked to skip long queues',
+      'Reusable tote: For carrying souvenirs or books',
+      'Travel umbrella: Compact protection for walking tours',
+      'Language app: Offline access for basic local phrases'
+    ],
+    nature: [
+      'Hiking boots: Broken-in and waterproof for rugged trails',
+      'Water bottle: Preferably insulated or collapsible',
+      'Binoculars: For birdwatching and distant landscapes',
+      'Multi-tool: Useful for minor repairs or food prep',
+      'Headlamp: Hands-free lighting for early starts or caves',
+      'Insect repellent: To guard against ticks and mosquitoes',
+      'Dry bag: Keeps electronics safe during river crossings',
+      'First-aid kit: Essential for remote areas',
+      'Compass/GPS: Reliable navigation where cell signal fails',
+      'Lightweight layers: Moisture-wicking base layers and a fleece'
+    ],
+    food: [
+      'Hand sanitizer: Essential before trying street food',
+      'Appetite: The most important item for a food tour!',
+      'Reusable cutlery: To reduce plastic waste at markets',
+      'Antacids: For relief after spicy or heavy local dishes',
+      'Wet wipes: For cleaning up after messy finger foods',
+      'Food map: Saved offline to find the best hidden gems',
+      'Insulated bag: To keep market finds fresh',
+      'Reusable straw: For coconuts or specialty beverages',
+      'Breath mints: For a quick refresh between tastings',
+      'Ziploc bags: To store leftovers or market snacks'
+    ],
+    nightlife: [
+      'ID card: Essential for entry to clubs and bars',
+      'Cash: Small bills for tips and coat checks',
+      'Portable charger: To ensure you can call a ride home',
+      'Breath strips: For quick refreshment on the go',
+      'Heel cushions: For comfort during hours of dancing',
+      'Credit card: Preferably one with no foreign transaction fees',
+      'Light jacket: For the walk between venues',
+      'Lip balm: For quick touch-ups throughout the night',
+      'Safety whistle: A small addition for late-night solo walks',
+      'Hotel address card: Physical card with your return address'
+    ],
+    family: [
+      'Sunscreen: High SPF protection for the whole family',
+      'Snacks: A variety to prevent hunger in children',
+      'Wet wipes: For inevitable spills and sticky hands',
+      'Changing mat: For portable and sanitary diaper changes',
+      'Travel games: Small cards or toys for travel delays',
+      'Extra clothes: Complete change for younger children',
+      'Tablet: Loaded with offline movies or children\'s books',
+      'Child ID bands: With your contact information attached',
+      'Noise-canceling headphones: For naps in busy or loud areas',
+      'Tissues: For runny noses or minor spills'
+    ],
+    amusement: [
+      'Poncho: To stay dry on water rides and log flumes',
+      'Comfy sneakers: Essential for walking several miles per day',
+      'Hat: To block the sun during long outdoor lines',
+      'Sunglasses: With a strap so they do not fly off on rides',
+      'Cooling towel: To stay refreshed in high park heat',
+      'Park app: Pre-downloaded for wait times and mobile orders',
+      'Power bank: Heavy usage of park apps drains battery fast',
+      'Hair bands: To secure long hair on high-speed attractions',
+      'Anti-chafing balm: For long days of walking in humidity',
+      'Waterproof phone pouch: To protect electronics on water rides'
+    ]
+  };
+            const list = lists[appState.vibe] || lists.culture;
+            document.getElementById('packing-list').innerHTML = list.map(item => `• ${item}`).join('<br>');
+        }
+    </script>
+</body>
+</html>
