@@ -15,8 +15,8 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -30,7 +30,7 @@
         .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 24px; }
         .vibe-chip { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
         .vibe-chip.active { background: var(--accent-teal); color: #020617; transform: translateY(-2px); box-shadow: 0 10px 20px -10px #2dd4bf; }
-        #map { height: 100% !important; min-height: 400px; width: 100%; border-radius: 24px; z-index: 10; }
+        #map { height: 100% !important; min-height: 400px; width: 100%; border-radius: 24px; z-index: 10; background: #1e293b; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
@@ -198,7 +198,12 @@
             </div>
 
             <div id="hotel-section" class="hidden space-y-6">
-                <h2 class="text-2xl font-extrabold px-2 flex items-center gap-3"><i data-lucide="bed" class="w-6 h-6 text-teal-400"></i> Stays & Accommodations</h2>
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="text-2xl font-extrabold flex items-center gap-3"><i data-lucide="bed" class="w-6 h-6 text-teal-400"></i> Stays & Accommodations</h2>
+                    <button id="google-hotels-btn" onclick="openGoogleHotels()" class="hidden text-[10px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-4 py-2 rounded-lg hover:bg-white/10 transition-all flex items-center gap-2">
+                        <i data-lucide="external-link" class="w-3 h-3"></i> Google Search: Hotels
+                    </button>
+                </div>
                 <div id="hotel-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
 
@@ -303,26 +308,27 @@
             'boston': 'BOS', 'philadelphia': 'PHL', 'barcelona': 'BCN', 'vienna': 'VIE'
         };
 
-        window.onload = function() {
+        window.addEventListener('load', function() {
             lucide.createIcons();
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
-            tileLayer = L.tileLayer(themes[appState.mapTheme]).addTo(map);
+            if (typeof L !== 'undefined') {
+                try {
+                    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
+                    tileLayer = L.tileLayer(themes[appState.mapTheme], { crossOrigin: true }).addTo(map);
+                } catch (e) { console.error("Map failed:", e); }
+            }
             updatePackingList();
             startClock();
-        };
+        });
 
         function startClock() {
             const update = () => {
                 const now = new Date();
-                const timeStr = now.toLocaleTimeString([], { 
-                    hour12: appState.timeFormat === 12, 
-                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                });
-                const dateStr = now.toLocaleDateString([], { 
-                    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' 
-                });
-                document.getElementById('nav-time').innerText = timeStr;
-                document.getElementById('nav-date').innerText = dateStr;
+                const timeStr = now.toLocaleTimeString([], { hour12: appState.timeFormat === 12, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const dateStr = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                const tEl = document.getElementById('nav-time');
+                const dEl = document.getElementById('nav-date');
+                if(tEl) tEl.innerText = timeStr;
+                if(dEl) dEl.innerText = dateStr;
             };
             setInterval(update, 1000);
             update();
@@ -348,7 +354,7 @@
             if(tab === 'explore') {
                 document.getElementById('view-explore').classList.remove('hidden');
                 document.getElementById('view-flights').classList.add('hidden');
-                setTimeout(() => map.invalidateSize(), 100);
+                if(map) setTimeout(() => map.invalidateSize(), 100);
             } else {
                 document.getElementById('view-explore').classList.add('hidden');
                 document.getElementById('view-flights').classList.remove('hidden');
@@ -357,7 +363,7 @@
 
         function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
         function setMapTheme(t) { 
-            appState.mapTheme = t; tileLayer.setUrl(themes[t]);
+            appState.mapTheme = t; if(tileLayer) tileLayer.setUrl(themes[t]);
             document.getElementById('themeLight').classList.toggle('active', t === 'light');
             document.getElementById('themeDark').classList.toggle('active', t === 'dark');
         }
@@ -368,12 +374,14 @@
         }
 
         function focusAllMarkers() {
+            if(!map) return;
             const all = markers.concat(hotelMarkers);
             if(all.length > 0) map.fitBounds(new L.featureGroup(all).getBounds().pad(0.2));
             else if(appState.lat) map.flyTo([appState.lat, appState.lon], 12);
         }
 
         const setupAutocomplete = (inputEl, resultsEl, callbackName) => {
+            if(!inputEl || !resultsEl) return;
             inputEl.addEventListener('input', async (e) => {
                 const val = e.target.value;
                 if (val.length < 2) { resultsEl.classList.add('hidden'); return; }
@@ -384,11 +392,8 @@
                         const name = f.properties.name || '';
                         const country = f.properties.country || '';
                         const state = f.properties.state || '';
-                        return `<div class="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 text-left" 
-                                 onclick="${callbackName}(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}', '${country.replace(/'/g, "\\'")}', '${f.properties.countrycode}')">
-                                <p class="font-bold text-xs text-white">${name}</p>
-                                <p class="text-[10px] text-slate-500 mt-0.5">${state}, ${country}</p>
-                            </div>`;
+                        return `<div class="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 text-left" onclick="${callbackName}(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}', '${country.replace(/'/g, "\\'")}', '${f.properties.countrycode}')">
+                                <p class="font-bold text-xs text-white">${name}</p><p class="text-[10px] text-slate-500 mt-0.5">${state}, ${country}</p></div>`;
                     }).join('');
                     resultsEl.classList.remove('hidden');
                 } catch (err) {}
@@ -400,12 +405,12 @@
         setupAutocomplete(document.getElementById('flight-dest'), document.getElementById('flight-dest-autocomplete'), 'selectFlightDest');
 
         function selectLocation(lat, lon, name, country, code) {
-            appState.lat = lat; appState.lon = lon; appState.dest = name; appState.country = country;
-            appState.countryCode = code;
+            appState.lat = lat; appState.lon = lon; appState.dest = name; appState.country = country; appState.countryCode = code;
             document.getElementById('destInput').value = `${name}, ${country}`;
             document.getElementById('flight-dest').value = name;
             document.getElementById('autocomplete').classList.add('hidden');
-            map.flyTo([lat, lon], 12);
+            if(map) map.flyTo([lat, lon], 12);
+            document.getElementById('google-hotels-btn').classList.remove('hidden');
             fetchPhotos(name); fetchBrief(name); fetchWeather(lat, lon); fetchCurrency(code); fetchHotels(lat, lon); generateItinerary();
         }
 
@@ -419,8 +424,15 @@
             document.getElementById('flight-dest-autocomplete').classList.add('hidden');
         }
 
+        function openGoogleHotels() {
+            if(!appState.dest) return;
+            const q = encodeURIComponent(`best hotels in ${appState.dest} ${appState.country}`);
+            window.open(`https://www.google.com/search?q=${q}`, '_blank');
+        }
+
         async function fetchPhotos(name) {
             const grid = document.getElementById('gallery-grid');
+            if(!grid) return;
             grid.innerHTML = Array(4).fill(0).map(() => `<div class="photo-card animate-pulse bg-slate-800"></div>`).join('');
             document.getElementById('gallery-section').classList.remove('hidden');
             try {
@@ -443,7 +455,8 @@
             try {
                 const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
                 const data = await res.json();
-                document.getElementById('brief-text').innerText = data.extract || `Explore ${name}.`;
+                const bText = document.getElementById('brief-text');
+                if(bText) bText.innerText = data.extract || `Explore ${name}.`;
                 document.getElementById('brief-card').classList.remove('hidden');
             } catch (e) {}
         }
@@ -453,58 +466,54 @@
                 const unit = appState.unit === 'F' ? 'fahrenheit' : 'celsius';
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&temperature_unit=${unit}&timezone=auto`);
                 const data = await res.json();
-                document.getElementById('forecast-list').innerHTML = data.daily.time.slice(0, 5).map((t, i) => {
-                    const code = data.daily.weathercode[i];
-                    const iconName = weatherIcons[code] || 'cloud';
-                    return `
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase">${new Date(t).toLocaleDateString([], {weekday: 'short'})}</span>
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="${iconName}" class="w-3.5 h-3.5 text-teal-400"></i>
-                            <span class="text-xs font-black text-white">${Math.round(data.daily.temperature_2m_max[i])}°${appState.unit}</span>
-                        </div>
-                    </div>
-                `}).join('');
-                lucide.createIcons();
+                const fList = document.getElementById('forecast-list');
+                if(fList) {
+                    fList.innerHTML = data.daily.time.slice(0, 5).map((t, i) => {
+                        const code = data.daily.weathercode[i];
+                        const iconName = weatherIcons[code] || 'cloud';
+                        return `<div class="flex justify-between items-center"><span class="text-[10px] text-slate-400 font-bold uppercase">${new Date(t).toLocaleDateString([], {weekday: 'short'})}</span><div class="flex items-center gap-2"><i data-lucide="${iconName}" class="w-3.5 h-3.5 text-teal-400"></i><span class="text-xs font-black text-white">${Math.round(data.daily.temperature_2m_max[i])}°${appState.unit}</span></div></div>`
+                    }).join('');
+                    lucide.createIcons();
+                }
             } catch (err) {}
         }
 
         function fetchCurrency(countryCode) {
             const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD', 'AE': 'AED', 'CH': 'CHF' };
             const destinationCurrency = mapping[countryCode] || 'USD';
-            document.getElementById('local-curr-code').innerText = destinationCurrency;
+            const lcCode = document.getElementById('local-curr-code');
+            if(lcCode) lcCode.innerText = destinationCurrency;
             const ratesToUSD = { 'USD': 1.0, 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'CAD': 1.35, 'CHF': 0.88, 'AED': 3.67 };
             const baseRateInUSD = ratesToUSD[appState.baseCurrency] || 1.0;
             const destRateInUSD = ratesToUSD[destinationCurrency] || 1.15;
             const crossRate = (destRateInUSD / baseRateInUSD).toFixed(2);
-            document.getElementById('local-curr-val').innerText = `${crossRate} ${destinationCurrency}`;
+            const lcVal = document.getElementById('local-curr-val');
+            if(lcVal) lcVal.innerText = `${crossRate} ${destinationCurrency}`;
             document.getElementById('currency-card').classList.remove('hidden');
         }
 
         async function fetchHotels(lat, lon) {
             const list = document.getElementById('hotel-list');
+            if(!list) return;
             list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding best stays...</div>`;
             document.getElementById('hotel-section').classList.remove('hidden');
-            const query = `[out:json];node(around:8000,${lat},${lon})["tourism"="hotel"];out 6;`;
+            // Using expanded Overpass query to find more hotels within a larger radius (15km)
+            const query = `[out:json];(node(around:15000,${lat},${lon})["tourism"="hotel"];way(around:15000,${lat},${lon})["tourism"="hotel"];);out center 8;`;
             try {
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
                 const data = await res.json();
-                hotelMarkers.forEach(m => map.removeLayer(m));
-                hotelMarkers = [];
-                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found.</div>`; return; }
+                if(map) { hotelMarkers.forEach(m => map.removeLayer(m)); hotelMarkers = []; }
+                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No specific hotels listed on map. Try the Search button above.</div>`; return; }
                 list.innerHTML = data.elements.map(h => {
                     const name = h.tags.name || 'Boutique Stay';
-                    const marker = L.circleMarker([h.lat, h.lon], { radius: 7, fillColor: "#fbbf24", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(`🏨 ${name}`);
-                    hotelMarkers.push(marker);
+                    const hLat = h.lat || h.center.lat;
+                    const hLon = h.lon || h.center.lon;
+                    if(map) {
+                        const marker = L.circleMarker([hLat, hLon], { radius: 7, fillColor: "#fbbf24", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(`🏨 ${name}`);
+                        hotelMarkers.push(marker);
+                    }
                     const searchQ = encodeURIComponent(`${name} hotel ${appState.dest}`);
-                    return `
-                        <div class="glass p-5 flex flex-col justify-between animate-fade">
-                            <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p></div>
-                            <div class="flex gap-2 mt-4">
-                                <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 text-amber-400">Book Now</a>
-                                <button onclick="map.flyTo([${h.lat}, ${h.lon}], 17)" class="btn-tool">Map Fly-To</button>
-                            </div>
-                        </div>`;
+                    return `<div class="glass p-5 flex flex-col justify-between animate-fade"><div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p></div><div class="flex gap-2 mt-4"><a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 text-amber-400">Book Now</a><button onclick="if(map) map.flyTo([${hLat}, ${hLon}], 17)" class="btn-tool">Map Fly-To</button></div></div>`;
                 }).join('');
                 lucide.createIcons();
             } catch (e) { list.innerHTML = ""; }
@@ -512,33 +521,52 @@
 
         async function generateItinerary() {
             const itDiv = document.getElementById('itinerary');
-            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">Scanning local area...</div>`;
-            const queries = { culture: '["tourism"="museum"]', nature: '["leisure"="park"]', food: '["amenity"="restaurant"]', nightlife: '["amenity"="pub"]', family: '["leisure"="playground"]', amusement: '["tourism"~"theme_park|attraction"]' };
-            const query = `[out:json];node(around:15000,${appState.lat},${appState.lon})${queries[appState.vibe] || queries.culture};out 12;`;
+            if(!itDiv) return;
+            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">Scanning landmarks & hidden gems...</div>`;
+            
+            // Expanded query (25km radius) including relations and ways for massive attractions like Disney
+            const vibeFilters = {
+                culture: '["tourism"~"museum|gallery|arts_centre"]',
+                nature: '["leisure"~"park|nature_reserve|garden"]',
+                food: '["amenity"="restaurant"]',
+                nightlife: '["amenity"~"pub|bar|nightclub"]',
+                family: '["leisure"~"playground|water_park|zoo"]',
+                amusement: '["tourism"~"theme_park|attraction|viewpoint"]'
+            };
+            
+            const baseFilter = vibeFilters[appState.vibe] || vibeFilters.amusement;
+            const query = `[out:json][timeout:25];(node(around:25000,${appState.lat},${appState.lon})${baseFilter};way(around:25000,${appState.lat},${appState.lon})${baseFilter};relation(around:25000,${appState.lat},${appState.lon})${baseFilter};);out center 15;`;
+            
             try {
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 renderPOI(data.elements);
-            } catch (err) {}
+            } catch (err) { itDiv.innerHTML = "Error fetching discovery data."; }
         }
 
         function renderPOI(points) {
             const itDiv = document.getElementById('itinerary');
-            markers.forEach(m => map.removeLayer(m)); markers = [];
-            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found.</div>`; return; }
+            if(!itDiv) return;
+            if(map) { markers.forEach(m => map.removeLayer(m)); markers = []; }
+            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found for this vibe nearby.</div>`; return; }
+            
             itDiv.innerHTML = points.map((p, i) => {
-                const name = p.tags.name || 'Point of Interest';
+                const name = p.tags.name || 'Landmark';
+                const pLat = p.lat || p.center.lat;
+                const pLon = p.lon || p.center.lon;
                 const searchQ = encodeURIComponent(`${name} ${appState.dest}`);
-                const marker = L.circleMarker([p.lat, p.lon], { radius: 6, fillColor: "#2dd4bf", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(name);
-                markers.push(marker);
+                if(map) {
+                    const marker = L.circleMarker([pLat, pLon], { radius: 6, fillColor: "#2dd4bf", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(name);
+                    markers.push(marker);
+                }
                 return `<div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s">
-                    <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.amenity || 'Local Spot'}</p></div>
+                    <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.leisure || p.tags.amenity || 'Local Attraction'}</p></div>
                     <div class="grid grid-cols-2 gap-2">
                         <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
                         <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
-                        <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Coupons</a>
-                        <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
-                        <button onclick="map.flyTo([${p.lat}, ${p.lon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button>
+                        <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Tickets</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query=${pLat},${pLon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
+                        <button onclick="if(map) map.flyTo([${pLat}, ${pLon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button>
                     </div></div>`;
             }).join('');
             lucide.createIcons();
@@ -548,7 +576,7 @@
         function setVibe(v, e) {
             appState.vibe = v;
             document.querySelectorAll('.vibe-chip').forEach(c => c.classList.remove('active'));
-            e.currentTarget.classList.add('active');
+            if(e) e.currentTarget.classList.add('active');
             updatePackingList();
             if (appState.dest) generateItinerary();
         }
@@ -628,6 +656,9 @@
       'Waterproof phone pouch: To protect electronics on water rides'
     ]
   };
+            const pList = document.getElementById('packing-list');
+            if(pList) pList.innerHTML = (lists[appState.vibe] || lists.culture).map(item => `• ${item}`).join('<br>');
+        }
 
         function resolveToIATA(cityName) {
             const clean = cityName.toLowerCase().trim();
@@ -640,22 +671,12 @@
             const destVal = document.getElementById('flight-dest').value.trim();
             const dateOut = document.getElementById('flight-date-out').value;
             const dateIn = document.getElementById('flight-date-in').value;
-
             if(!originVal || !destVal || !dateOut) { return; }
-
             const oCode = resolveToIATA(originVal);
             const dCode = resolveToIATA(destVal);
-
-            // Google Flights
             document.getElementById('link-google').href = `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(destVal)}%20from%20${encodeURIComponent(originVal)}%20on%20${dateOut}${dateIn ? '%20returning%20' + dateIn : ''}`;
-            
-            // Skyscanner
-            const sDateFull = dateOut; 
-            document.getElementById('link-skyscanner').href = `https://www.skyscanner.net/transport/flights/${oCode}/${dCode}/${sDateFull}/${dateIn ? dateIn + '/' : ''}?adults=1&cabinclass=economy&children=0&infants=0`;
-            
-            // Kayak
+            document.getElementById('link-skyscanner').href = `https://www.skyscanner.net/transport/flights/${oCode}/${dCode}/${dateOut}/${dateIn ? dateIn + '/' : ''}?adults=1&cabinclass=economy`;
             document.getElementById('link-kayak').href = `https://www.kayak.com/flights/${oCode}-${dCode}/${dateOut}${dateIn ? '/' + dateIn : ''}?sort=bestflight_a`;
-
             document.getElementById('flight-results').classList.remove('hidden');
         }
     </script>
