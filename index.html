@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- SEO Meta Tags -->
-    <title>Vagabond.ai | Ultimate AI Travel Planner & Flight Search</title>
-    <meta name="description" content="Plan your next adventure with Vagabond.ai. Explore destinations, check live weather, convert currencies, and find the best flights using AI-powered insights.">
-    <meta name="keywords" content="travel planner, AI travel, flight search, itinerary generator, currency converter, travel concierge, vacation planning">
-    <meta name="author" content="Vagabond.ai">
+    <title>Vagabond.ai | Ultimate AI Travel Planner</title>
+    <meta name="description" content="AI-powered travel planning with discovery radius controls and live flight search.">
     
-    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,6 +45,10 @@
         .nav-tab.active { color: var(--accent-teal); }
         .nav-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent-teal); border-radius: 2px; }
         .top-clock { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--accent-teal); cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: 0 0 10px rgba(45, 212, 191, 0.4); }
     </style>
 </head>
 <body class="min-h-screen">
@@ -85,7 +85,19 @@
             <h2 class="text-xl font-bold">Preferences</h2>
             <button onclick="toggleSettings()" class="p-2 hover:bg-white/5 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-        <div class="space-y-10">
+        <div class="space-y-8">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block">Search Radius</label>
+                    <span id="radius-display" class="text-xs font-bold text-teal-400">25 miles</span>
+                </div>
+                <input type="range" id="radius-slider" min="0.5" max="75" step="0.5" value="25" oninput="updateRadius(this.value)" class="w-full h-2 rounded-lg cursor-pointer">
+                <div class="flex gap-2 mt-4">
+                    <button id="dist-mi" onclick="setDistanceUnit('mi')" class="setting-btn active">Miles</button>
+                    <button id="dist-km" onclick="setDistanceUnit('km')" class="setting-btn">KM</button>
+                </div>
+            </div>
+
             <div>
                 <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Time Format</label>
                 <div class="flex gap-2">
@@ -238,7 +250,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Departure Date</label>
-                    <input type="date" id="flight-date-out" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white [color-scheme:dark]">
+                    <input type="date" id="flight-date-out" onchange="onDepartureChange()" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white [color-scheme:dark]">
                 </div>
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Return Date (Optional)</label>
@@ -253,21 +265,16 @@
                 </button>
             </div>
 
-            <div id="flight-results" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade">
+            <div id="flight-results" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade max-w-2xl mx-auto">
                 <a id="link-google" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
                     <img src="https://www.google.com/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
                     <p class="font-bold text-sm">Google Flights</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Speed</p>
-                </a>
-                <a id="link-skyscanner" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
-                    <img src="https://www.skyscanner.net/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
-                    <p class="font-bold text-sm">Skyscanner</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Cheap Deals</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Direct Carrier Pricing</p>
                 </a>
                 <a id="link-kayak" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
                     <img src="https://www.kayak.com/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
                     <p class="font-bold text-sm">Kayak</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Filters</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Aggregated Best Rates</p>
                 </a>
             </div>
         </div>
@@ -279,7 +286,8 @@
         const appState = {
             dest: '', lat: null, lon: null, country: '', countryCode: '',
             vibe: 'culture', mapTheme: 'light', unit: 'F',
-            timeFormat: 12, baseCurrency: 'USD'
+            timeFormat: 12, baseCurrency: 'USD',
+            radius: 25, radiusUnit: 'mi'
         };
 
         const themes = {
@@ -308,6 +316,35 @@
             'boston': 'BOS', 'philadelphia': 'PHL', 'barcelona': 'BCN', 'vienna': 'VIE'
         };
 
+        // --- NEW DISCOVERY SERVER RECOVERY LOGIC ---
+        const OVERPASS_ENDPOINTS = [
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://z.overpass-api.de/api/interpreter'
+        ];
+
+        async function fetchWithRetry(query, endpoints = OVERPASS_ENDPOINTS) {
+            for (let url of endpoints) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per server
+                    
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        body: `data=${encodeURIComponent(query)}`,
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    if (res.ok) return await res.json();
+                } catch (e) {
+                    console.warn(`Server ${url} failed or timed out. Trying next...`);
+                }
+            }
+            throw new Error("All discovery servers are currently unreachable.");
+        }
+
         window.addEventListener('load', function() {
             lucide.createIcons();
             if (typeof L !== 'undefined') {
@@ -319,6 +356,35 @@
             updatePackingList();
             startClock();
         });
+
+        function onDepartureChange() {
+            const outDate = document.getElementById('flight-date-out');
+            const inDate = document.getElementById('flight-date-in');
+            if (outDate.value) {
+                inDate.min = outDate.value;
+                try {
+                    inDate.showPicker();
+                } catch (e) {
+                    inDate.focus();
+                }
+            }
+        }
+
+        function updateRadius(val) {
+            appState.radius = parseFloat(val);
+            document.getElementById('radius-display').innerText = `${val} ${appState.radiusUnit === 'mi' ? 'miles' : 'km'}`;
+            if(appState.dest) {
+                generateItinerary();
+                fetchHotels(appState.lat, appState.lon);
+            }
+        }
+
+        function setDistanceUnit(u) {
+            appState.radiusUnit = u;
+            document.getElementById('dist-mi').classList.toggle('active', u === 'mi');
+            document.getElementById('dist-km').classList.toggle('active', u === 'km');
+            updateRadius(appState.radius);
+        }
 
         function startClock() {
             const update = () => {
@@ -497,13 +563,14 @@
             if(!list) return;
             list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding best stays...</div>`;
             document.getElementById('hotel-section').classList.remove('hidden');
-            // Using expanded Overpass query to find more hotels within a larger radius (15km)
-            const query = `[out:json];(node(around:15000,${lat},${lon})["tourism"="hotel"];way(around:15000,${lat},${lon})["tourism"="hotel"];);out center 8;`;
+            
+            const radiusMeters = appState.radiusUnit === 'mi' ? appState.radius * 1609.34 : appState.radius * 1000;
+            const query = `[out:json];(node(around:${radiusMeters},${lat},${lon})["tourism"="hotel"];way(around:${radiusMeters},${lat},${lon})["tourism"="hotel"];);out center 8;`;
+            
             try {
-                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                const data = await res.json();
+                const data = await fetchWithRetry(query);
                 if(map) { hotelMarkers.forEach(m => map.removeLayer(m)); hotelMarkers = []; }
-                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No specific hotels listed on map. Try the Search button above.</div>`; return; }
+                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found within ${appState.radius} ${appState.radiusUnit}.</div>`; return; }
                 list.innerHTML = data.elements.map(h => {
                     const name = h.tags.name || 'Boutique Stay';
                     const hLat = h.lat || h.center.lat;
@@ -516,39 +583,50 @@
                     return `<div class="glass p-5 flex flex-col justify-between animate-fade"><div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p></div><div class="flex gap-2 mt-4"><a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 text-amber-400">Book Now</a><button onclick="if(map) map.flyTo([${hLat}, ${hLon}], 17)" class="btn-tool">Map Fly-To</button></div></div>`;
                 }).join('');
                 lucide.createIcons();
-            } catch (e) { list.innerHTML = ""; }
+            } catch (e) { 
+                list.innerHTML = `<div class="col-span-full py-8 text-center text-red-400 text-xs">Stay search timed out. Refreshing location usually helps.</div>`;
+            }
         }
 
         async function generateItinerary() {
             const itDiv = document.getElementById('itinerary');
             if(!itDiv) return;
-            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">Scanning landmarks & hidden gems...</div>`;
+            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-3">
+                <div class="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin"></div>
+                Scanning landmarks via Overpass Cloud...
+            </div>`;
             
-            // Expanded query (25km radius) including relations and ways for massive attractions like Disney
+            const radiusMeters = Math.min(appState.radiusUnit === 'mi' ? appState.radius * 1609.34 : appState.radius * 1000, 50000);
+
             const vibeFilters = {
-                culture: '["tourism"~"museum|gallery|arts_centre"]',
+                culture: '["tourism"~"museum|gallery|arts_centre|monument"]',
                 nature: '["leisure"~"park|nature_reserve|garden"]',
-                food: '["amenity"="restaurant"]',
+                food: '["amenity"~"restaurant|cafe"]',
                 nightlife: '["amenity"~"pub|bar|nightclub"]',
                 family: '["leisure"~"playground|water_park|zoo"]',
                 amusement: '["tourism"~"theme_park|attraction|viewpoint"]'
             };
             
             const baseFilter = vibeFilters[appState.vibe] || vibeFilters.amusement;
-            const query = `[out:json][timeout:25];(node(around:25000,${appState.lat},${appState.lon})${baseFilter};way(around:25000,${appState.lat},${appState.lon})${baseFilter};relation(around:25000,${appState.lat},${appState.lon})${baseFilter};);out center 15;`;
+            // Use lighter query (center only) to reduce data payload size
+            const query = `[out:json][timeout:15];(node(around:${radiusMeters},${appState.lat},${appState.lon})${baseFilter};way(around:${radiusMeters},${appState.lat},${appState.lon})${baseFilter};);out center 20;`;
             
             try {
-                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                const data = await res.json();
+                const data = await fetchWithRetry(query);
                 renderPOI(data.elements);
-            } catch (err) { itDiv.innerHTML = "Error fetching discovery data."; }
+            } catch (err) { 
+                itDiv.innerHTML = `<div class="col-span-full py-12 text-center">
+                    <p class="text-slate-400 mb-4">The Discovery Engine is currently overloaded.</p>
+                    <button onclick="generateItinerary()" class="bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-xs font-bold hover:bg-white/10 transition-all">TRY RECONNECTING</button>
+                </div>`;
+            }
         }
 
         function renderPOI(points) {
             const itDiv = document.getElementById('itinerary');
             if(!itDiv) return;
             if(map) { markers.forEach(m => map.removeLayer(m)); markers = []; }
-            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found for this vibe nearby.</div>`; return; }
+            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found within range. Try a larger radius.</div>`; return; }
             
             itDiv.innerHTML = points.map((p, i) => {
                 const name = p.tags.name || 'Landmark';
@@ -564,7 +642,7 @@
                     <div class="grid grid-cols-2 gap-2">
                         <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
                         <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
-                        <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Tickets</a>
+                        <a href="https://www.google.com/search?q=${searchQ}+tickets" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Tickets</a>
                         <a href="https://www.google.com/maps/search/?api=1&query=${pLat},${pLon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
                         <button onclick="if(map) map.flyTo([${pLat}, ${pLon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button>
                     </div></div>`;
@@ -656,7 +734,6 @@
       'Waterproof phone pouch: To protect electronics on water rides'
     ]
   };
-            const pList = document.getElementById('packing-list');
             if(pList) pList.innerHTML = (lists[appState.vibe] || lists.culture).map(item => `• ${item}`).join('<br>');
         }
 
@@ -675,7 +752,6 @@
             const oCode = resolveToIATA(originVal);
             const dCode = resolveToIATA(destVal);
             document.getElementById('link-google').href = `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(destVal)}%20from%20${encodeURIComponent(originVal)}%20on%20${dateOut}${dateIn ? '%20returning%20' + dateIn : ''}`;
-            document.getElementById('link-skyscanner').href = `https://www.skyscanner.net/transport/flights/${oCode}/${dCode}/${dateOut}/${dateIn ? dateIn + '/' : ''}?adults=1&cabinclass=economy`;
             document.getElementById('link-kayak').href = `https://www.kayak.com/flights/${oCode}-${dCode}/${dateOut}${dateIn ? '/' + dateIn : ''}?sort=bestflight_a`;
             document.getElementById('flight-results').classList.remove('hidden');
         }
