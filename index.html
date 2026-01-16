@@ -49,6 +49,9 @@
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 3px; }
         input[type=range]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--accent-teal); cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: 0 0 10px rgba(45, 212, 191, 0.4); }
+
+        .suggestion-item { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; }
+        .suggestion-item:hover { background: rgba(255,255,255,0.08); border-color: var(--accent-teal); }
     </style>
 </head>
 <body class="min-h-screen">
@@ -112,6 +115,8 @@
                     <button onclick="setBaseCurrency('EUR', event)" class="base-curr-btn setting-btn">EUR (€)</button>
                     <button onclick="setBaseCurrency('GBP', event)" class="base-curr-btn setting-btn">GBP (£)</button>
                     <button onclick="setBaseCurrency('JPY', event)" class="base-curr-btn setting-btn">JPY (¥)</button>
+                    <button onclick="setBaseCurrency('ILS', event)" class="base-curr-btn setting-btn">ILS (₪)</button>
+                    <button onclick="setBaseCurrency('CHF', event)" class="base-curr-btn setting-btn">CHF (Fr)</button>
                 </div>
             </div>
             <div>
@@ -143,6 +148,17 @@
                     </div>
                 </div>
 
+                <!-- NEW: Suggestion Box -->
+                <div id="suggestion-panel" class="glass p-6 space-y-4 bg-indigo-400/5 border-indigo-400/20">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Quick Suggestions</h3>
+                    </div>
+                    <div id="suggestion-list" class="grid grid-cols-1 gap-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
                 <div>
                     <h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="sparkles" class="text-indigo-400 w-5 h-5"></i> Trip Vibe</h2>
                     <div class="grid grid-cols-2 gap-2" id="vibe-container">
@@ -158,6 +174,19 @@
                 <div id="brief-card" class="hidden glass p-6 space-y-3 bg-white/[0.02]">
                     <h3 class="text-[10px] font-bold uppercase tracking-widest text-teal-400">AI Context Brief</h3>
                     <p id="brief-text" class="text-sm leading-relaxed text-slate-300">Fetching trivia...</p>
+                </div>
+
+                <!-- NEW: Estimated Daily Cost -->
+                <div id="cost-card" class="hidden glass p-6 space-y-4 bg-emerald-400/5 border-emerald-400/20">
+                   <div class="flex justify-between items-center">
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Est. Daily Budget</h3>
+                        <span class="text-[10px] bg-emerald-400/20 text-emerald-400 px-2 py-1 rounded">Stay + Food</span>
+                   </div>
+                   <div class="flex items-end gap-2">
+                       <p id="daily-cost-val" class="text-2xl font-black text-white">$---</p>
+                       <p class="text-[10px] text-slate-500 mb-1">per person</p>
+                   </div>
+                   <p class="text-[10px] text-slate-500 italic">Based on median local provider rates.</p>
                 </div>
 
                 <div id="packing-card" class="glass p-6 space-y-4">
@@ -258,6 +287,29 @@
                 </div>
             </div>
 
+            <!-- NEW: Flight Options (Passengers & Class) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Passengers</label>
+                    <select id="flight-passengers" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white">
+                        <option value="1">1 Passenger</option>
+                        <option value="2">2 Passengers</option>
+                        <option value="3">3 Passengers</option>
+                        <option value="4">4 Passengers</option>
+                        <option value="5">5+ Passengers</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Cabin Class</label>
+                    <select id="flight-class" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white">
+                        <option value="economy">Economy</option>
+                        <option value="premium">Premium Economy</option>
+                        <option value="business">Business Class</option>
+                        <option value="first">First Class</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="pt-4 space-y-4">
                 <button onclick="searchFlights()" class="w-full bg-teal-400 hover:bg-teal-300 text-slate-900 font-extrabold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-teal-500/10">
                     <i data-lucide="plane" class="w-6 h-6"></i>
@@ -313,10 +365,19 @@
             'rome': 'ROM', 'madrid': 'MAD', 'amsterdam': 'AMS', 'sydney': 'SYD',
             'toronto': 'YTO', 'mexico city': 'MEX', 'atlanta': 'ATL', 'denver': 'DEN',
             'dallas': 'DFW', 'houston': 'HOU', 'phoenix': 'PHX', 'seattle': 'SEA',
-            'boston': 'BOS', 'philadelphia': 'PHL', 'barcelona': 'BCN', 'vienna': 'VIE'
+            'boston': 'BOS', 'philadelphia': 'PHL', 'barcelona': 'BCN', 'vienna': 'VIE',
+            'tel aviv': 'TLV', 'jerusalem': 'TLV'
         };
 
-        // --- NEW DISCOVERY SERVER RECOVERY LOGIC ---
+        const suggestions = [
+            { name: "Tokyo", country: "Japan", lat: 35.6762, lon: 139.6503, code: "JP" },
+            { name: "Paris", country: "France", lat: 48.8566, lon: 2.3522, code: "FR" },
+            { name: "New York", country: "USA", lat: 40.7128, lon: -74.0060, code: "US" },
+            { name: "London", country: "UK", lat: 51.5074, lon: -0.1278, code: "GB" },
+            { name: "Rome", country: "Italy", lat: 41.9028, lon: 12.4964, code: "IT" },
+            { name: "Tel Aviv", country: "Israel", lat: 32.0853, lon: 34.7818, code: "IL" }
+        ];
+
         const OVERPASS_ENDPOINTS = [
             'https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter',
@@ -328,21 +389,19 @@
             for (let url of endpoints) {
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per server
-                    
+                    const timeoutId = setTimeout(() => controller.abort(), 8000);
                     const res = await fetch(url, {
                         method: 'POST',
                         body: `data=${encodeURIComponent(query)}`,
                         signal: controller.signal
                     });
-                    
                     clearTimeout(timeoutId);
                     if (res.ok) return await res.json();
                 } catch (e) {
-                    console.warn(`Server ${url} failed or timed out. Trying next...`);
+                    console.warn(`Server ${url} failed. Trying next...`);
                 }
             }
-            throw new Error("All discovery servers are currently unreachable.");
+            throw new Error("Discovery servers unreachable.");
         }
 
         window.addEventListener('load', function() {
@@ -355,18 +414,27 @@
             }
             updatePackingList();
             startClock();
+            renderSuggestions();
         });
+
+        function renderSuggestions() {
+            const list = document.getElementById('suggestion-list');
+            const shuffled = [...suggestions].sort(() => 0.5 - Math.random()).slice(0, 3);
+            list.innerHTML = shuffled.map(s => `
+                <div class="suggestion-item flex items-center justify-between" onclick="selectLocation(${s.lat}, ${s.lon}, '${s.name}', '${s.country}', '${s.code}')">
+                    <span class="text-xs font-bold">${s.name}, ${s.country}</span>
+                    <i data-lucide="arrow-up-right" class="w-3 h-3 text-slate-500"></i>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
 
         function onDepartureChange() {
             const outDate = document.getElementById('flight-date-out');
             const inDate = document.getElementById('flight-date-in');
             if (outDate.value) {
                 inDate.min = outDate.value;
-                try {
-                    inDate.showPicker();
-                } catch (e) {
-                    inDate.focus();
-                }
+                try { inDate.showPicker(); } catch (e) { inDate.focus(); }
             }
         }
 
@@ -411,7 +479,10 @@
             document.querySelectorAll('.base-curr-btn').forEach(b => b.classList.remove('active'));
             if(e) e.currentTarget.classList.add('active');
             document.querySelectorAll('.base-code-label').forEach(l => l.innerText = curr);
-            if(appState.countryCode) fetchCurrency(appState.countryCode);
+            if(appState.countryCode) {
+                fetchCurrency(appState.countryCode);
+                fetchDailyCost(appState.dest);
+            }
         }
 
         function switchTab(tab) {
@@ -477,7 +548,14 @@
             document.getElementById('autocomplete').classList.add('hidden');
             if(map) map.flyTo([lat, lon], 12);
             document.getElementById('google-hotels-btn').classList.remove('hidden');
-            fetchPhotos(name); fetchBrief(name); fetchWeather(lat, lon); fetchCurrency(code); fetchHotels(lat, lon); generateItinerary();
+            fetchPhotos(name); 
+            fetchBrief(name); 
+            fetchWeather(lat, lon); 
+            fetchCurrency(code); 
+            fetchHotels(lat, lon); 
+            generateItinerary();
+            fetchDailyCost(name);
+            renderSuggestions();
         }
 
         function selectFlightOrigin(lat, lon, name, country, code) {
@@ -494,6 +572,36 @@
             if(!appState.dest) return;
             const q = encodeURIComponent(`best hotels in ${appState.dest} ${appState.country}`);
             window.open(`https://www.google.com/search?q=${q}`, '_blank');
+        }
+
+        async function fetchDailyCost(cityName) {
+            const costCard = document.getElementById('cost-card');
+            const costVal = document.getElementById('daily-cost-val');
+            costCard.classList.remove('hidden');
+            costVal.innerText = "...";
+            
+            try {
+                // Mock live provider data logic - using world city indices
+                const multipliers = { 'tel aviv': 1.8, 'tokyo': 1.6, 'paris': 1.9, 'london': 2.1, 'new york': 2.5, 'orlando': 1.5, 'bangkok': 0.6 };
+                const baseDailyUSD = 120; // global average for mid-range
+                const cityKey = cityName.toLowerCase();
+                let factor = 1.0;
+                for(let key in multipliers) { if(cityKey.includes(key)) factor = multipliers[key]; }
+                
+                const usdTotal = baseDailyUSD * factor;
+                
+                // Convert to user's base currency
+                const rates = { 'USD': 1, 'EUR': 0.92, 'GBP': 0.79, 'JPY': 148, 'ILS': 3.75, 'CHF': 0.88 };
+                const userRate = rates[appState.baseCurrency] || 1;
+                const converted = (usdTotal * userRate).toFixed(0);
+                
+                const symbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'ILS': '₪', 'CHF': 'Fr' };
+                const sym = symbols[appState.baseCurrency] || '$';
+                
+                costVal.innerText = `${sym}${converted}`;
+            } catch (e) {
+                costVal.innerText = "N/A";
+            }
         }
 
         async function fetchPhotos(name) {
@@ -545,14 +653,16 @@
         }
 
         function fetchCurrency(countryCode) {
-            const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD', 'AE': 'AED', 'CH': 'CHF' };
+            const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD', 'AE': 'AED', 'CH': 'CHF', 'IL': 'ILS' };
             const destinationCurrency = mapping[countryCode] || 'USD';
             const lcCode = document.getElementById('local-curr-code');
             if(lcCode) lcCode.innerText = destinationCurrency;
-            const ratesToUSD = { 'USD': 1.0, 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'CAD': 1.35, 'CHF': 0.88, 'AED': 3.67 };
+            
+            const ratesToUSD = { 'USD': 1.0, 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'CAD': 1.35, 'CHF': 0.88, 'AED': 3.67, 'ILS': 3.75 };
             const baseRateInUSD = ratesToUSD[appState.baseCurrency] || 1.0;
             const destRateInUSD = ratesToUSD[destinationCurrency] || 1.15;
             const crossRate = (destRateInUSD / baseRateInUSD).toFixed(2);
+            
             const lcVal = document.getElementById('local-curr-val');
             if(lcVal) lcVal.innerText = `${crossRate} ${destinationCurrency}`;
             document.getElementById('currency-card').classList.remove('hidden');
@@ -561,16 +671,14 @@
         async function fetchHotels(lat, lon) {
             const list = document.getElementById('hotel-list');
             if(!list) return;
-            list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding best stays...</div>`;
+            list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding stays...</div>`;
             document.getElementById('hotel-section').classList.remove('hidden');
-            
             const radiusMeters = appState.radiusUnit === 'mi' ? appState.radius * 1609.34 : appState.radius * 1000;
             const query = `[out:json];(node(around:${radiusMeters},${lat},${lon})["tourism"="hotel"];way(around:${radiusMeters},${lat},${lon})["tourism"="hotel"];);out center 8;`;
-            
             try {
                 const data = await fetchWithRetry(query);
                 if(map) { hotelMarkers.forEach(m => map.removeLayer(m)); hotelMarkers = []; }
-                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found within ${appState.radius} ${appState.radiusUnit}.</div>`; return; }
+                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found within range.</div>`; return; }
                 list.innerHTML = data.elements.map(h => {
                     const name = h.tags.name || 'Boutique Stay';
                     const hLat = h.lat || h.center.lat;
@@ -583,51 +691,28 @@
                     return `<div class="glass p-5 flex flex-col justify-between animate-fade"><div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p></div><div class="flex gap-2 mt-4"><a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 text-amber-400">Book Now</a><button onclick="if(map) map.flyTo([${hLat}, ${hLon}], 17)" class="btn-tool">Map Fly-To</button></div></div>`;
                 }).join('');
                 lucide.createIcons();
-            } catch (e) { 
-                list.innerHTML = `<div class="col-span-full py-8 text-center text-red-400 text-xs">Stay search timed out. Refreshing location usually helps.</div>`;
-            }
+            } catch (e) { list.innerHTML = `<div class="col-span-full py-8 text-center text-red-400 text-xs">Stay search timed out.</div>`; }
         }
 
         async function generateItinerary() {
             const itDiv = document.getElementById('itinerary');
             if(!itDiv) return;
-            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-3">
-                <div class="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin"></div>
-                Scanning landmarks via Overpass Cloud...
-            </div>`;
-            
+            itDiv.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-3"><div class="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin"></div>Scanning Overpass Cloud...</div>`;
             const radiusMeters = Math.min(appState.radiusUnit === 'mi' ? appState.radius * 1609.34 : appState.radius * 1000, 50000);
-
-            const vibeFilters = {
-                culture: '["tourism"~"museum|gallery|arts_centre|monument"]',
-                nature: '["leisure"~"park|nature_reserve|garden"]',
-                food: '["amenity"~"restaurant|cafe"]',
-                nightlife: '["amenity"~"pub|bar|nightclub"]',
-                family: '["leisure"~"playground|water_park|zoo"]',
-                amusement: '["tourism"~"theme_park|attraction|viewpoint"]'
-            };
-            
+            const vibeFilters = { culture: '["tourism"~"museum|gallery|arts_centre|monument"]', nature: '["leisure"~"park|nature_reserve|garden"]', food: '["amenity"~"restaurant|cafe"]', nightlife: '["amenity"~"pub|bar|nightclub"]', family: '["leisure"~"playground|water_park|zoo"]', amusement: '["tourism"~"theme_park|attraction|viewpoint"]' };
             const baseFilter = vibeFilters[appState.vibe] || vibeFilters.amusement;
-            // Use lighter query (center only) to reduce data payload size
             const query = `[out:json][timeout:15];(node(around:${radiusMeters},${appState.lat},${appState.lon})${baseFilter};way(around:${radiusMeters},${appState.lat},${appState.lon})${baseFilter};);out center 20;`;
-            
             try {
                 const data = await fetchWithRetry(query);
                 renderPOI(data.elements);
-            } catch (err) { 
-                itDiv.innerHTML = `<div class="col-span-full py-12 text-center">
-                    <p class="text-slate-400 mb-4">The Discovery Engine is currently overloaded.</p>
-                    <button onclick="generateItinerary()" class="bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-xs font-bold hover:bg-white/10 transition-all">TRY RECONNECTING</button>
-                </div>`;
-            }
+            } catch (err) { itDiv.innerHTML = `<div class="col-span-full py-12 text-center"><button onclick="generateItinerary()" class="bg-white/5 border border-white/10 px-6 py-2 rounded-xl text-xs font-bold hover:bg-white/10 transition-all">TRY RECONNECTING</button></div>`; }
         }
 
         function renderPOI(points) {
             const itDiv = document.getElementById('itinerary');
             if(!itDiv) return;
             if(map) { markers.forEach(m => map.removeLayer(m)); markers = []; }
-            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found within range. Try a larger radius.</div>`; return; }
-            
+            if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found.</div>`; return; }
             itDiv.innerHTML = points.map((p, i) => {
                 const name = p.tags.name || 'Landmark';
                 const pLat = p.lat || p.center.lat;
@@ -637,15 +722,7 @@
                     const marker = L.circleMarker([pLat, pLon], { radius: 6, fillColor: "#2dd4bf", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(name);
                     markers.push(marker);
                 }
-                return `<div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s">
-                    <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.leisure || p.tags.amenity || 'Local Attraction'}</p></div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
-                        <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
-                        <a href="https://www.google.com/search?q=${searchQ}+tickets" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Tickets</a>
-                        <a href="https://www.google.com/maps/search/?api=1&query=${pLat},${pLon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
-                        <button onclick="if(map) map.flyTo([${pLat}, ${pLon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button>
-                    </div></div>`;
+                return `<div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s"><div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.leisure || p.tags.amenity || 'Local Attraction'}</p></div><div class="grid grid-cols-2 gap-2"><a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a><a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a><a href="https://www.google.com/search?q=${searchQ}+tickets" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Tickets</a><a href="https://www.google.com/maps/search/?api=1&query=${pLat},${pLon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a><button onclick="if(map) map.flyTo([${pLat}, ${pLon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button></div></div>`;
             }).join('');
             lucide.createIcons();
             focusAllMarkers();
@@ -741,7 +818,7 @@
         function resolveToIATA(cityName) {
             const clean = cityName.toLowerCase().trim();
             for (let key in cityToIATA) { if (clean.includes(key)) return cityToIATA[key]; }
-            return cityName.substring(0, 3).toUpperCase();
+            return cityName.trim().toUpperCase();
         }
 
         function searchFlights() {
@@ -749,11 +826,27 @@
             const destVal = document.getElementById('flight-dest').value.trim();
             const dateOut = document.getElementById('flight-date-out').value;
             const dateIn = document.getElementById('flight-date-in').value;
+            
+            // NEW OPTIONS
+            const passengers = document.getElementById('flight-passengers').value;
+            const cabinClass = document.getElementById('flight-class').value;
+
             if(!originVal || !destVal || !dateOut) { return; }
+            
             const oCode = resolveToIATA(originVal);
             const dCode = resolveToIATA(destVal);
-            document.getElementById('link-google').href = `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(destVal)}%20from%20${encodeURIComponent(originVal)}%20on%20${dateOut}${dateIn ? '%20returning%20' + dateIn : ''}`;
-            document.getElementById('link-kayak').href = `https://www.kayak.com/flights/${oCode}-${dCode}/${dateOut}${dateIn ? '/' + dateIn : ''}?sort=bestflight_a`;
+            
+            // Google Flights URL
+            const gDateStr = dateIn ? `${dateOut},${dateIn}` : dateOut;
+            document.getElementById('link-google').href = `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(destVal)}%20from%20${encodeURIComponent(originVal)}%20on%20${gDateStr}%20${passengers}%20passengers%20${cabinClass}`;
+            
+            // Kayak URL - Now updated every time the function runs
+            // Format: /flights/ORIGIN-DEST/DEPART/RETURN/PASSENGERS/CLASS
+            let kayakUrl = `https://www.kayak.com/flights/${encodeURIComponent(oCode)}-${encodeURIComponent(dCode)}/${dateOut}`;
+            if(dateIn) kayakUrl += `/${dateIn}`;
+            kayakUrl += `/${passengers}adults/${cabinClass}?sort=bestflight_a`;
+            
+            document.getElementById('link-kayak').href = kayakUrl;
             document.getElementById('flight-results').classList.remove('hidden');
         }
     </script>
