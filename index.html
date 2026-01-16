@@ -734,6 +734,7 @@
       'Waterproof phone pouch: To protect electronics on water rides'
     ]
   };
+            const pList = document.getElementById('packing-list');
             if(pList) pList.innerHTML = (lists[appState.vibe] || lists.culture).map(item => `• ${item}`).join('<br>');
         }
 
