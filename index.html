@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vagabond.ai | Live AI Travel Concierge</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>Vagabond.ai | Ultimate AI Travel Planner & Flight Search</title>
+    <meta name="description" content="Plan your next adventure with Vagabond.ai. Explore destinations, check live weather, convert currencies, and find the best flights using AI-powered insights.">
+    <meta name="keywords" content="travel planner, AI travel, flight search, itinerary generator, currency converter, travel concierge, vacation planning">
+    <meta name="author" content="Vagabond.ai">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -32,42 +40,68 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .photo-card { aspect-ratio: 16/9; width: 100%; object-fit: cover; border-radius: 16px; transition: all 0.3s ease; cursor: pointer; background: #1e293b; }
         .photo-card:hover { transform: scale(1.03); border: 2px solid var(--accent-teal); }
-        .btn-tool { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; transition: all 0.2s; color: #94a3b8; text-decoration: none; }
-        .btn-tool:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
-        
-        /* Fixed UI classes for toggles */
-        .setting-btn { flex: 1; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 0.75rem; font-weight: 700; transition: all 0.2s; }
+        .btn-tool { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; transition: all 0.2s; color: #94a3b8; text-decoration: none; border: none; cursor: pointer; }
+        .btn-tool:hover { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .setting-btn { flex: 1; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 0.75rem; font-weight: 700; transition: all 0.2s; cursor: pointer; }
         .setting-btn.active { border-color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); color: var(--accent-teal); }
-        
         .map-focus-btn { position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: var(--accent-teal); color: #020617; padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; box-shadow: 0 10px 20px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; transition: transform 0.2s; }
-        .map-focus-btn:hover { transform: scale(1.05); }
+        .nav-tab { cursor: pointer; position: relative; padding: 1rem 1.5rem; font-weight: 700; color: #94a3b8; transition: all 0.2s; }
+        .nav-tab.active { color: var(--accent-teal); }
+        .nav-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent-teal); border-radius: 2px; }
+        .top-clock { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body class="min-h-screen">
     <div class="bg-glow top-[-10%] left-[-10%]"></div>
     <div class="bg-glow bottom-[-10%] right-[-10%]"></div>
 
-    <nav class="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center relative z-50">
+    <nav class="max-w-7xl mx-auto px-6 pt-8 flex justify-between items-center relative z-50">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-teal-400 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
                 <i data-lucide="compass" class="text-slate-900 w-6 h-6"></i>
             </div>
             <h1 class="text-2xl font-extrabold tracking-tight">Vagabond<span class="text-teal-400">.ai</span></h1>
         </div>
-        <div class="flex items-center gap-4">
+        
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex flex-col items-end border-r border-white/10 pr-6">
+                <p id="nav-time" class="text-lg font-bold top-clock">--:--:--</p>
+                <p id="nav-date" class="text-[10px] uppercase font-bold tracking-widest text-slate-500">Loading Date...</p>
+            </div>
             <button onclick="toggleSettings()" class="bg-white/5 hover:bg-white/10 p-2.5 rounded-full border border-white/10 text-slate-400 transition-colors">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
         </div>
     </nav>
 
+    <div class="max-w-7xl mx-auto px-6 mt-4 flex border-b border-white/5 mb-8">
+        <div onclick="switchTab('explore')" id="tab-explore" class="nav-tab active">Destination Explore</div>
+        <div onclick="switchTab('flights')" id="tab-flights" class="nav-tab">Flight Search</div>
+    </div>
+
     <!-- Settings Sidebar -->
-    <div id="settingsPanel" class="glass border-l border-white/10 settings-panel p-8">
+    <div id="settingsPanel" class="glass border-l border-white/10 settings-panel p-8 custom-scrollbar overflow-y-auto">
         <div class="flex justify-between items-center mb-10">
             <h2 class="text-xl font-bold">Preferences</h2>
             <button onclick="toggleSettings()" class="p-2 hover:bg-white/5 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-        <div class="space-y-8">
+        <div class="space-y-10">
+            <div>
+                <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Time Format</label>
+                <div class="flex gap-2">
+                    <button id="time12" onclick="setTimeFormat(12)" class="setting-btn active">12H</button>
+                    <button id="time24" onclick="setTimeFormat(24)" class="setting-btn">24H</button>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Base Currency</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setBaseCurrency('USD', event)" class="base-curr-btn setting-btn active">USD ($)</button>
+                    <button onclick="setBaseCurrency('EUR', event)" class="base-curr-btn setting-btn">EUR (€)</button>
+                    <button onclick="setBaseCurrency('GBP', event)" class="base-curr-btn setting-btn">GBP (£)</button>
+                    <button onclick="setBaseCurrency('JPY', event)" class="base-curr-btn setting-btn">JPY (¥)</button>
+                </div>
+            </div>
             <div>
                 <label class="text-xs font-bold uppercase tracking-widest text-slate-500 block mb-4">Map Theme</label>
                 <div class="flex gap-2">
@@ -85,10 +119,10 @@
         </div>
     </div>
 
-    <main class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12">
-        <!-- Sidebar -->
+    <!-- MAIN EXPLORE TAB -->
+    <main id="view-explore" class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 animate-fade">
         <div class="lg:col-span-4 space-y-6">
-            <div class="glass p-8 space-y-8 animate-fade">
+            <div class="glass p-8 space-y-8">
                 <div>
                     <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><i data-lucide="map-pin" class="text-teal-400 w-5 h-5"></i> Destination</h2>
                     <div class="relative">
@@ -126,7 +160,7 @@
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="text-center">
-                            <p class="text-[10px] text-slate-500 mb-1">Base (USD)</p>
+                            <p class="text-[10px] text-slate-500 mb-1">Base (<span class="base-code-label">USD</span>)</p>
                             <p id="user-curr-val" class="text-lg font-black">1.00</p>
                         </div>
                         <i data-lucide="arrow-right-left" class="text-slate-600"></i>
@@ -139,9 +173,7 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="lg:col-span-8 space-y-8">
-            <!-- Map & Weather Header -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-3 glass relative overflow-hidden h-[400px]">
                     <div id="map"></div>
@@ -160,22 +192,78 @@
                 </div>
             </div>
 
-            <!-- Photos -->
             <div id="gallery-section" class="hidden space-y-4">
                 <h2 class="text-xl font-bold px-2 flex items-center gap-2"><i data-lucide="image" class="w-5 h-5 text-indigo-400"></i> Visual Inspiration (Wikimedia)</h2>
                 <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
             </div>
 
-            <!-- Hotels Section -->
             <div id="hotel-section" class="hidden space-y-6">
                 <h2 class="text-2xl font-extrabold px-2 flex items-center gap-3"><i data-lucide="bed" class="w-6 h-6 text-teal-400"></i> Stays & Accommodations</h2>
                 <div id="hotel-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
 
-            <!-- Itinerary Section -->
             <div id="itinerary-section" class="space-y-6">
                 <h2 class="text-2xl font-extrabold px-2 flex items-center gap-3"><i data-lucide="map" class="w-6 h-6 text-indigo-400"></i> Destination Discovery</h2>
                 <div id="itinerary" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FLIGHTS TAB -->
+    <main id="view-flights" class="hidden max-w-7xl mx-auto px-6 pb-12 animate-fade">
+        <div class="glass p-10 max-w-4xl mx-auto space-y-10">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-extrabold text-white">Find Your Route</h2>
+                <p class="text-slate-400">Search the world's best flight aggregators with your specific details.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2 relative">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Leaving From</label>
+                    <input type="text" id="flight-origin" placeholder="City (e.g. New York)" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white placeholder:text-slate-600">
+                    <div id="origin-autocomplete" class="absolute w-full mt-1 bg-slate-900 border border-white/15 rounded-xl z-[101] hidden overflow-hidden"></div>
+                </div>
+                <div class="space-y-2 relative">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Going To</label>
+                    <input type="text" id="flight-dest" placeholder="City (e.g. London)" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white placeholder:text-slate-600">
+                    <div id="flight-dest-autocomplete" class="absolute w-full mt-1 bg-slate-900 border border-white/15 rounded-xl z-[101] hidden overflow-hidden"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Departure Date</label>
+                    <input type="date" id="flight-date-out" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white [color-scheme:dark]">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Return Date (Optional)</label>
+                    <input type="date" id="flight-date-in" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-teal-400/50 text-white [color-scheme:dark]">
+                </div>
+            </div>
+
+            <div class="pt-4 space-y-4">
+                <button onclick="searchFlights()" class="w-full bg-teal-400 hover:bg-teal-300 text-slate-900 font-extrabold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-teal-500/10">
+                    <i data-lucide="plane" class="w-6 h-6"></i>
+                    SEARCH BEST RATES
+                </button>
+            </div>
+
+            <div id="flight-results" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade">
+                <a id="link-google" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
+                    <img src="https://www.google.com/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
+                    <p class="font-bold text-sm">Google Flights</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Speed</p>
+                </a>
+                <a id="link-skyscanner" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
+                    <img src="https://www.skyscanner.net/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
+                    <p class="font-bold text-sm">Skyscanner</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Cheap Deals</p>
+                </a>
+                <a id="link-kayak" target="_blank" class="glass p-6 text-center hover:bg-white/5 transition-all group">
+                    <img src="https://www.kayak.com/favicon.ico" class="w-6 h-6 mx-auto mb-3 opacity-50 group-hover:opacity-100" />
+                    <p class="font-bold text-sm">Kayak</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Best for Filters</p>
+                </a>
             </div>
         </div>
     </main>
@@ -184,8 +272,9 @@
         let map, markers = [], hotelMarkers = [];
         let tileLayer;
         const appState = {
-            dest: '', lat: null, lon: null, country: '',
-            vibe: 'culture', mapTheme: 'light', unit: 'F'
+            dest: '', lat: null, lon: null, country: '', countryCode: '',
+            vibe: 'culture', mapTheme: 'light', unit: 'F',
+            timeFormat: 12, baseCurrency: 'USD'
         };
 
         const themes = {
@@ -193,81 +282,147 @@
             dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         };
 
+        const weatherIcons = {
+            0: 'sun', 1: 'cloud-sun', 2: 'cloud-sun', 3: 'cloud',
+            45: 'cloud', 48: 'cloud', 
+            51: 'cloud-drizzle', 53: 'cloud-drizzle', 55: 'cloud-drizzle',
+            61: 'cloud-rain', 63: 'cloud-rain', 65: 'cloud-rain',
+            71: 'cloud-snow', 73: 'cloud-snow', 75: 'cloud-snow',
+            80: 'cloud-rain', 81: 'cloud-rain', 82: 'cloud-rain',
+            95: 'cloud-lightning'
+        };
+
+        const cityToIATA = {
+            'new york': 'NYC', 'london': 'LON', 'tokyo': 'TYO', 'paris': 'PAR',
+            'orlando': 'MCO', 'los angeles': 'LAX', 'san francisco': 'SFO',
+            'chicago': 'CHI', 'miami': 'MIA', 'dubai': 'DXB', 'bangkok': 'BKK',
+            'seoul': 'SEL', 'singapore': 'SIN', 'hong kong': 'HKG', 'berlin': 'BER',
+            'rome': 'ROM', 'madrid': 'MAD', 'amsterdam': 'AMS', 'sydney': 'SYD',
+            'toronto': 'YTO', 'mexico city': 'MEX', 'atlanta': 'ATL', 'denver': 'DEN',
+            'dallas': 'DFW', 'houston': 'HOU', 'phoenix': 'PHX', 'seattle': 'SEA',
+            'boston': 'BOS', 'philadelphia': 'PHL', 'barcelona': 'BCN', 'vienna': 'VIE'
+        };
+
         window.onload = function() {
             lucide.createIcons();
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20, 0], 2);
             tileLayer = L.tileLayer(themes[appState.mapTheme]).addTo(map);
             updatePackingList();
+            startClock();
         };
 
+        function startClock() {
+            const update = () => {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { 
+                    hour12: appState.timeFormat === 12, 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
+                });
+                const dateStr = now.toLocaleDateString([], { 
+                    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' 
+                });
+                document.getElementById('nav-time').innerText = timeStr;
+                document.getElementById('nav-date').innerText = dateStr;
+            };
+            setInterval(update, 1000);
+            update();
+        }
+
+        function setTimeFormat(fmt) {
+            appState.timeFormat = fmt;
+            document.getElementById('time12').classList.toggle('active', fmt === 12);
+            document.getElementById('time24').classList.toggle('active', fmt === 24);
+        }
+
+        function setBaseCurrency(curr, e) {
+            appState.baseCurrency = curr;
+            document.querySelectorAll('.base-curr-btn').forEach(b => b.classList.remove('active'));
+            if(e) e.currentTarget.classList.add('active');
+            document.querySelectorAll('.base-code-label').forEach(l => l.innerText = curr);
+            if(appState.countryCode) fetchCurrency(appState.countryCode);
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            if(tab === 'explore') {
+                document.getElementById('view-explore').classList.remove('hidden');
+                document.getElementById('view-flights').classList.add('hidden');
+                setTimeout(() => map.invalidateSize(), 100);
+            } else {
+                document.getElementById('view-explore').classList.add('hidden');
+                document.getElementById('view-flights').classList.remove('hidden');
+            }
+        }
+
         function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('open'); }
-        
         function setMapTheme(t) { 
-            appState.mapTheme = t; 
-            tileLayer.setUrl(themes[t]);
-            // Update UI Highlighting
+            appState.mapTheme = t; tileLayer.setUrl(themes[t]);
             document.getElementById('themeLight').classList.toggle('active', t === 'light');
             document.getElementById('themeDark').classList.toggle('active', t === 'dark');
         }
-        
         function setUnit(u) { 
-            appState.unit = u; 
-            if(appState.lat) fetchWeather(appState.lat, appState.lon);
-            // Update UI Highlighting
+            appState.unit = u; if(appState.lat) fetchWeather(appState.lat, appState.lon);
             document.getElementById('unitF').classList.toggle('active', u === 'F');
             document.getElementById('unitC').classList.toggle('active', u === 'C');
         }
 
         function focusAllMarkers() {
             const all = markers.concat(hotelMarkers);
-            if(all.length > 0) {
-                map.fitBounds(new L.featureGroup(all).getBounds().pad(0.2));
-            } else if(appState.lat) {
-                map.flyTo([appState.lat, appState.lon], 12);
-            }
+            if(all.length > 0) map.fitBounds(new L.featureGroup(all).getBounds().pad(0.2));
+            else if(appState.lat) map.flyTo([appState.lat, appState.lon], 12);
         }
 
-        const destInput = document.getElementById('destInput');
-        const autocomplete = document.getElementById('autocomplete');
+        const setupAutocomplete = (inputEl, resultsEl, callbackName) => {
+            inputEl.addEventListener('input', async (e) => {
+                const val = e.target.value;
+                if (val.length < 2) { resultsEl.classList.add('hidden'); return; }
+                try {
+                    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`);
+                    const data = await res.json();
+                    resultsEl.innerHTML = data.features.map(f => {
+                        const name = f.properties.name || '';
+                        const country = f.properties.country || '';
+                        const state = f.properties.state || '';
+                        return `<div class="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 text-left" 
+                                 onclick="${callbackName}(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}', '${country.replace(/'/g, "\\'")}', '${f.properties.countrycode}')">
+                                <p class="font-bold text-xs text-white">${name}</p>
+                                <p class="text-[10px] text-slate-500 mt-0.5">${state}, ${country}</p>
+                            </div>`;
+                    }).join('');
+                    resultsEl.classList.remove('hidden');
+                } catch (err) {}
+            });
+        };
 
-        destInput.addEventListener('input', async (e) => {
-            const val = e.target.value;
-            if (val.length < 2) { autocomplete.classList.add('hidden'); return; }
-            try {
-                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6`);
-                const data = await res.json();
-                autocomplete.innerHTML = data.features.map(f => {
-                    const name = f.properties.name || '';
-                    const country = f.properties.country || '';
-                    return `<div class="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5" 
-                             onclick="selectLocation(${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]}, '${name.replace(/'/g, "\\'")}', '${country.replace(/'/g, "\\'")}', '${f.properties.countrycode}')">
-                            <p class="font-bold text-sm text-white">${name}</p>
-                            <p class="text-xs text-slate-500 mt-1">${f.properties.state || ''}, ${country}</p>
-                        </div>`;
-                }).join('');
-                autocomplete.classList.remove('hidden');
-            } catch (err) {}
-        });
+        setupAutocomplete(document.getElementById('destInput'), document.getElementById('autocomplete'), 'selectLocation');
+        setupAutocomplete(document.getElementById('flight-origin'), document.getElementById('origin-autocomplete'), 'selectFlightOrigin');
+        setupAutocomplete(document.getElementById('flight-dest'), document.getElementById('flight-dest-autocomplete'), 'selectFlightDest');
 
-        async function selectLocation(lat, lon, name, country, code) {
+        function selectLocation(lat, lon, name, country, code) {
             appState.lat = lat; appState.lon = lon; appState.dest = name; appState.country = country;
-            destInput.value = `${name}, ${country}`;
-            autocomplete.classList.add('hidden');
+            appState.countryCode = code;
+            document.getElementById('destInput').value = `${name}, ${country}`;
+            document.getElementById('flight-dest').value = name;
+            document.getElementById('autocomplete').classList.add('hidden');
             map.flyTo([lat, lon], 12);
-            
-            fetchPhotos(name);
-            fetchBrief(name);
-            fetchWeather(lat, lon);
-            fetchCurrency(code);
-            fetchHotels(lat, lon);
-            generateItinerary();
+            fetchPhotos(name); fetchBrief(name); fetchWeather(lat, lon); fetchCurrency(code); fetchHotels(lat, lon); generateItinerary();
+        }
+
+        function selectFlightOrigin(lat, lon, name, country, code) {
+            document.getElementById('flight-origin').value = name;
+            document.getElementById('origin-autocomplete').classList.add('hidden');
+        }
+
+        function selectFlightDest(lat, lon, name, country, code) {
+            document.getElementById('flight-dest').value = name;
+            document.getElementById('flight-dest-autocomplete').classList.add('hidden');
         }
 
         async function fetchPhotos(name) {
             const grid = document.getElementById('gallery-grid');
             grid.innerHTML = Array(4).fill(0).map(() => `<div class="photo-card animate-pulse bg-slate-800"></div>`).join('');
             document.getElementById('gallery-section').classList.remove('hidden');
-
             try {
                 const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages|images&titles=${encodeURIComponent(name)}&pithumbsize=800`);
                 const data = await res.json();
@@ -275,17 +430,10 @@
                 const pageId = Object.keys(pages)[0];
                 let imageUrls = [];
                 if (pages[pageId].thumbnail) imageUrls.push(pages[pageId].thumbnail.source);
-
                 const randomRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(name)}&gsrnamespace=6&prop=imageinfo&iiprop=url&gsrlimit=10`);
                 const randomData = await randomRes.json();
                 if (randomData.query && randomData.query.pages) {
-                    Object.values(randomData.query.pages).forEach(p => {
-                        if (p.imageinfo && p.imageinfo[0].url) imageUrls.push(p.imageinfo[0].url);
-                    });
-                }
-                if (imageUrls.length === 0) {
-                    grid.innerHTML = `<p class="col-span-full text-slate-500 italic text-sm p-4">No Commons images found.</p>`;
-                    return;
+                    Object.values(randomData.query.pages).forEach(p => { if (p.imageinfo) imageUrls.push(p.imageinfo[0].url); });
                 }
                 grid.innerHTML = imageUrls.slice(0, 4).map(url => `<img src="${url}" class="photo-card" onclick="window.open('${url}', '_blank')">`).join('');
             } catch (e) {}
@@ -295,7 +443,7 @@
             try {
                 const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
                 const data = await res.json();
-                document.getElementById('brief-text').innerText = data.extract || `Explore the unique atmosphere and landmarks of ${name}.`;
+                document.getElementById('brief-text').innerText = data.extract || `Explore ${name}.`;
                 document.getElementById('brief-card').classList.remove('hidden');
             } catch (e) {}
         }
@@ -305,23 +453,31 @@
                 const unit = appState.unit === 'F' ? 'fahrenheit' : 'celsius';
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&temperature_unit=${unit}&timezone=auto`);
                 const data = await res.json();
-                const forecastDiv = document.getElementById('forecast-list');
-                forecastDiv.innerHTML = data.daily.time.slice(0, 5).map((t, i) => `
+                document.getElementById('forecast-list').innerHTML = data.daily.time.slice(0, 5).map((t, i) => {
+                    const code = data.daily.weathercode[i];
+                    const iconName = weatherIcons[code] || 'cloud';
+                    return `
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] text-slate-400 font-bold uppercase">${new Date(t).toLocaleDateString([], {weekday: 'short'})}</span>
-                        <span class="text-xs font-black text-white">${Math.round(data.daily.temperature_2m_max[i])}°${appState.unit}</span>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="${iconName}" class="w-3.5 h-3.5 text-teal-400"></i>
+                            <span class="text-xs font-black text-white">${Math.round(data.daily.temperature_2m_max[i])}°${appState.unit}</span>
+                        </div>
                     </div>
-                `).join('');
+                `}).join('');
+                lucide.createIcons();
             } catch (err) {}
         }
 
         function fetchCurrency(countryCode) {
-            const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD' };
-            const local = mapping[countryCode] || 'USD';
-            document.getElementById('local-curr-code').innerText = local;
-            const rates = { 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'USD': 1.0, 'CAD': 1.35 };
-            const rate = rates[local] || 1.15;
-            document.getElementById('local-curr-val').innerText = `${rate.toFixed(2)} ${local}`;
+            const mapping = { 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'FR': 'EUR', 'DE': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'CA': 'CAD', 'AU': 'AUD', 'AE': 'AED', 'CH': 'CHF' };
+            const destinationCurrency = mapping[countryCode] || 'USD';
+            document.getElementById('local-curr-code').innerText = destinationCurrency;
+            const ratesToUSD = { 'USD': 1.0, 'EUR': 0.92, 'JPY': 148.5, 'GBP': 0.79, 'CAD': 1.35, 'CHF': 0.88, 'AED': 3.67 };
+            const baseRateInUSD = ratesToUSD[appState.baseCurrency] || 1.0;
+            const destRateInUSD = ratesToUSD[destinationCurrency] || 1.15;
+            const crossRate = (destRateInUSD / baseRateInUSD).toFixed(2);
+            document.getElementById('local-curr-val').innerText = `${crossRate} ${destinationCurrency}`;
             document.getElementById('currency-card').classList.remove('hidden');
         }
 
@@ -329,19 +485,13 @@
             const list = document.getElementById('hotel-list');
             list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">Finding best stays...</div>`;
             document.getElementById('hotel-section').classList.remove('hidden');
-
             const query = `[out:json];node(around:8000,${lat},${lon})["tourism"="hotel"];out 6;`;
             try {
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 hotelMarkers.forEach(m => map.removeLayer(m));
                 hotelMarkers = [];
-
-                if (!data.elements || data.elements.length === 0) {
-                    list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found.</div>`;
-                    return;
-                }
-
+                if (!data.elements || data.elements.length === 0) { list.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500 italic">No hotels found.</div>`; return; }
                 list.innerHTML = data.elements.map(h => {
                     const name = h.tags.name || 'Boutique Stay';
                     const marker = L.circleMarker([h.lat, h.lon], { radius: 7, fillColor: "#fbbf24", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(`🏨 ${name}`);
@@ -349,12 +499,9 @@
                     const searchQ = encodeURIComponent(`${name} hotel ${appState.dest}`);
                     return `
                         <div class="glass p-5 flex flex-col justify-between animate-fade">
-                            <div>
-                                <h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3>
-                                <p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p>
-                            </div>
+                            <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-amber-400 uppercase mt-1 tracking-widest font-bold">Recommended Stay</p></div>
                             <div class="flex gap-2 mt-4">
-                                <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 border-amber-400/20 text-amber-400">Book Now</a>
+                                <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool bg-amber-400/10 text-amber-400">Book Now</a>
                                 <button onclick="map.flyTo([${h.lat}, ${h.lon}], 17)" class="btn-tool">Map Fly-To</button>
                             </div>
                         </div>`;
@@ -377,31 +524,22 @@
 
         function renderPOI(points) {
             const itDiv = document.getElementById('itinerary');
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
+            markers.forEach(m => map.removeLayer(m)); markers = [];
             if (!points || points.length === 0) { itDiv.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500">No matches found.</div>`; return; }
-
             itDiv.innerHTML = points.map((p, i) => {
                 const name = p.tags.name || 'Point of Interest';
                 const searchQ = encodeURIComponent(`${name} ${appState.dest}`);
                 const marker = L.circleMarker([p.lat, p.lon], { radius: 6, fillColor: "#2dd4bf", color: "#000", weight: 1, fillOpacity: 1 }).addTo(map).bindPopup(name);
                 markers.push(marker);
-                return `
-                    <div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s">
-                        <div>
-                            <h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3>
-                            <p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.amenity || 'Local Spot'}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
-                            <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
-                            <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Coupons</a>
-                            <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
-                            <button onclick="map.flyTo([${p.lat}, ${p.lon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2">
-                                <i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To
-                            </button>
-                        </div>
-                    </div>`;
+                return `<div class="glass p-5 flex flex-col gap-4 animate-fade" style="animation-delay: ${i*0.05}s">
+                    <div><h3 class="font-bold text-white text-sm line-clamp-1">${name}</h3><p class="text-[10px] text-slate-400 uppercase mt-1 tracking-widest font-bold">${p.tags.tourism || p.tags.amenity || 'Local Spot'}</p></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="https://www.google.com/search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="search" class="w-3 h-3 text-teal-400"></i> Search</a>
+                        <a href="https://www.tripadvisor.com/Search?q=${searchQ}" target="_blank" class="btn-tool"><i data-lucide="star" class="w-3 h-3 text-yellow-400"></i> Reviews</a>
+                        <a href="https://www.google.com/search?q=${searchQ}+coupons" target="_blank" class="btn-tool"><i data-lucide="ticket" class="w-3 h-3 text-indigo-400"></i> Coupons</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}" target="_blank" class="btn-tool"><i data-lucide="map-pin" class="w-3 h-3 text-red-400"></i> G-Maps</a>
+                        <button onclick="map.flyTo([${p.lat}, ${p.lon}], 17)" class="col-span-2 bg-teal-400 text-slate-900 font-bold py-2 rounded-lg text-[10px] uppercase flex items-center justify-center gap-2 border-none cursor-pointer"><i data-lucide="navigation" class="w-3 h-3"></i> Map Fly-To</button>
+                    </div></div>`;
             }).join('');
             lucide.createIcons();
             focusAllMarkers();
@@ -490,8 +628,35 @@
       'Waterproof phone pouch: To protect electronics on water rides'
     ]
   };
-            const list = lists[appState.vibe] || lists.culture;
-            document.getElementById('packing-list').innerHTML = list.map(item => `• ${item}`).join('<br>');
+
+        function resolveToIATA(cityName) {
+            const clean = cityName.toLowerCase().trim();
+            for (let key in cityToIATA) { if (clean.includes(key)) return cityToIATA[key]; }
+            return cityName.substring(0, 3).toUpperCase();
+        }
+
+        function searchFlights() {
+            const originVal = document.getElementById('flight-origin').value.trim();
+            const destVal = document.getElementById('flight-dest').value.trim();
+            const dateOut = document.getElementById('flight-date-out').value;
+            const dateIn = document.getElementById('flight-date-in').value;
+
+            if(!originVal || !destVal || !dateOut) { return; }
+
+            const oCode = resolveToIATA(originVal);
+            const dCode = resolveToIATA(destVal);
+
+            // Google Flights
+            document.getElementById('link-google').href = `https://www.google.com/travel/flights?q=Flights%20to%20${encodeURIComponent(destVal)}%20from%20${encodeURIComponent(originVal)}%20on%20${dateOut}${dateIn ? '%20returning%20' + dateIn : ''}`;
+            
+            // Skyscanner
+            const sDateFull = dateOut; 
+            document.getElementById('link-skyscanner').href = `https://www.skyscanner.net/transport/flights/${oCode}/${dCode}/${sDateFull}/${dateIn ? dateIn + '/' : ''}?adults=1&cabinclass=economy&children=0&infants=0`;
+            
+            // Kayak
+            document.getElementById('link-kayak').href = `https://www.kayak.com/flights/${oCode}-${dCode}/${dateOut}${dateIn ? '/' + dateIn : ''}?sort=bestflight_a`;
+
+            document.getElementById('flight-results').classList.remove('hidden');
         }
     </script>
 </body>
